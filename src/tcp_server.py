@@ -1,7 +1,8 @@
 import socket 
 from logger import logger
 import threading
-from .http_parser import parse_http_request
+from http_parser import parse_http_request
+from handler import handle_request
 
 
 HOST="0.0.0.0"
@@ -44,10 +45,25 @@ def server_start():
                 if not raw_request:
                     logger.warning("Empty request")
                     continue
-                logger.debug("\n===== RAW REQUEST =====")
-                logger.debug(raw_request.decode(errors="replace"))
-                logger.debug("========================\n")
-                response_body="Request received"
+                decoded = raw_request.decode(errors="replace")
+                logger.debug(
+                    "\n===== INCOMING HTTP REQUEST =====\n"
+                    f"{decoded.rstrip()}\n"
+                    "=================================\n")
+                try:
+                    parsed=parse_http_request(raw_request)
+                except ValueError as e:
+                    logger.error(f"Bad request:{e}")
+                    error_body="400 Bad Request"
+                    responce=("HTTP/1.1 400 Bad Request\r\n"
+                        f"Content-Length: {len(error_body)}\r\n"
+                        "Content-Type: text/plain\r\n"
+                        "Connection: close\r\n"
+                        "\r\n"
+                        f"{error_body}")
+                    conn.sendall(response.encode())
+                    continue
+                response_body = handle_request(parsed)
                 response=("HTTP/1.1 200 OK\r\n"
                         f"Content-Length: {len(response_body)}\r\n"
                             "Content-Type: text/plain\r\n"

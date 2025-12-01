@@ -18,17 +18,19 @@ def parse_http_request(raw_data: bytes)->Dict:
         text=raw_data.decode("utf-8", errors="replace")
     except Exception:
         text=str(raw_data)
-    if "\r\n\r\n" in text:
-        head, body=text.split("\r\n\r\n",1)
+    text=text.replace("\r\n", "\n").replace("\r", "\n")
+    if "\n\n" in text:
+        head,body=text.split("\n\n", 1)
     else:
         head=text
         body=""
-    lines=head.split("\r\n")
+    lines=head.split("\n")
     if len(lines)<1:
         raise ValueError("Invalid HTTP request: no start str")
-    start_line = lines[0].split(" ")
+
+    start_line=lines[0].split(" ")
     if len(start_line)!=3:
-        raise ValueError(f"Invalid start str:{lines[0]}")
+        raise ValueError(f"Invalid start str: {lines[0]}")
     method,path,version=start_line
     headers={}
     for line in lines[1:]:
